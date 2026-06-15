@@ -1,6 +1,9 @@
 [build]
   publish = "public"
 
+[build.environment]
+  NODE_VERSION = "20"
+
 [functions]
   # Bundle TypeScript functions and their imports with esbuild.
   node_bundler = "esbuild"
