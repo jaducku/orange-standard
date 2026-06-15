@@ -8,9 +8,34 @@
   # Bundle TypeScript functions and their imports with esbuild.
   node_bundler = "esbuild"
 
-# Expose the MCP server at a clean /mcp path. MCP clients connect here.
+# MCP endpoint — clients connect here.
 [[redirects]]
   from = "/mcp"
+  to = "/.netlify/functions/mcp"
+  status = 200
+  force = true
+
+# OAuth endpoints (discovery, registration, authorize, token).
+[[redirects]]
+  from = "/.well-known/*"
+  to = "/.netlify/functions/mcp"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/authorize"
+  to = "/.netlify/functions/mcp"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/token"
+  to = "/.netlify/functions/mcp"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/register"
   to = "/.netlify/functions/mcp"
   status = 200
   force = true

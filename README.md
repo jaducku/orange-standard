@@ -85,6 +85,29 @@ npx @modelcontextprotocol/inspector
 Runs comfortably within the Netlify Free Tier — it's stateless and only proxies
 small JSON reads.
 
+## Authentication (OAuth 2.1)
+
+The `/mcp` endpoint is protected so that hosts like **claude.ai** can connect via
+their OAuth connector flow (authless remote servers are unreliable there). The
+server is its own minimal, **stateless** OAuth 2.1 authorization server:
+
+- Discovery: `/.well-known/oauth-protected-resource`, `/.well-known/oauth-authorization-server`
+- Dynamic Client Registration: `POST /register` (RFC 7591)
+- `GET /authorize` — **auto-approves** (the data is public, read-only) with PKCE (S256)
+- `POST /token` — issues HMAC-signed (HS256) bearer + refresh tokens
+- `POST /mcp` — requires `Authorization: Bearer …`, else `401` with `WWW-Authenticate`
+
+Codes and tokens are signed, not stored, so it stays stateless across serverless
+invocations. Set a signing secret in production:
+
+```sh
+# Netlify → Site settings → Environment variables
+OAUTH_SIGNING_SECRET=<a long random string>
+```
+
+To connect from **claude.ai**: add a custom connector with URL
+`https://<your-site>.netlify.app/mcp` and complete the (instant) OAuth approval.
+
 ## Non-functional notes
 
 - Upstream requests time out at 8s and surface clear `MempoolApiError`s, which
