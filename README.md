@@ -1,89 +1,85 @@
 # orange-standard
 
-A **headless Bitcoin network service** — think of it as the backend of a
-mempool explorer without any UI. It exposes Bitcoin *network* data (fees,
-mempool state, chain tip) over a clean JSON API. It is **not** a trading,
-wallet, or investment tool.
+A **headless Bitcoin Mempool MCP server** for AI agents. It exposes real-time
+Bitcoin *network* state (latest blocks, block details, mempool congestion,
+recommended fees) over the [Model Context Protocol](https://modelcontextprotocol.io),
+so an agent can answer questions like *"what's the current block height?"* or
+*"what's a good fee right now?"* in natural language — no browser, no UI.
 
-> Status: early scaffold. The first iteration wraps the
-> [mempool.space](https://mempool.space/docs/api/rest) public API behind a small
-> caching layer. A self-hosted full node can be plugged in later **without
-> changing the API layer**, thanks to the `DataSource` abstraction.
+It is **not** a wallet, trading, or portfolio tool. Data comes from the
+[mempool.space](https://mempool.space/docs/api/rest) public API.
 
-## Why this shape?
+> Status: MVP. Deployed as a stateless Streamable-HTTP MCP server on Netlify
+> Functions.
 
-A home full node is a precious, limited resource. If every API request hit
-`bitcoind` directly it would become a bottleneck. So the design treats the data
-provider as a swappable *source*, fronted by a cache:
+## Architecture
 
 ```
-        DataSource (interface)
-        ├── mempoolspace.Client   ← today: wraps mempool.space
-        └── (future) bitcoind     ← later: your own node + indexer
-                    │
-              cache.Caching       ← per-method TTL cache, collapses bursts
-                    │
-                 api.Server       ← read-only JSON HTTP API
+AI Agent ──> MCP Client ──> Netlify Function (/mcp) ──> mempool.space REST API
+                              stateless Streamable HTTP
 ```
 
-When you wire in your own node later, you implement the `DataSource` interface
-once; the cache and API layers stay untouched.
+- **Stateless**: a fresh MCP server + transport is built per request, so
+  concurrent serverless invocations stay isolated (no shared sessions).
+- **Swappable source**: all upstream access is isolated in `MempoolClient`, so a
+  self-hosted full node could replace mempool.space later without touching the
+  tool layer.
+
+## Tools
+
+| Tool                 | Input                       | Returns                                                |
+| -------------------- | --------------------------- | ------------------------------------------------------ |
+| `get_latest_blocks`  | `limit?` (1–15, default 10) | Recent blocks: height, hash, timestamp, tx count, miner|
+| `get_block_detail`   | `height` **or** `hash`      | Block metadata: size, weight, miner, merkle root, …    |
+| `get_mempool_status` | —                           | Pending tx count, vsize, total fee, projected blocks   |
+| `get_fee_estimates`  | —                           | Recommended fee rates (sat/vB)                         |
 
 ## Layout
 
 ```
-cmd/orange-standard/        service entrypoint (config, wiring, graceful shutdown)
-internal/datasource/        DataSource interface + domain types
-internal/datasource/mempoolspace/  mempool.space API client
-internal/cache/             TTL caching decorator over a DataSource
-internal/api/               HTTP server, routes, handlers
-internal/config/            env-based configuration
+netlify/functions/mcp.ts   Netlify entrypoint: Express + Streamable HTTP transport at /mcp
+src/mcp/server.ts          setupMCPServer(): registers the four tools
+src/mempool/client.ts      typed, read-only mempool.space API client
+public/index.html          static landing page
+netlify.toml               build config + /mcp redirect
 ```
-
-## Run
-
-```sh
-make run        # or: go run ./cmd/orange-standard
-```
-
-The server listens on `:8080` by default.
-
-## API
-
-| Method | Path                          | Description                          |
-| ------ | ----------------------------- | ------------------------------------ |
-| GET    | `/healthz`                    | Liveness + active provider           |
-| GET    | `/api/v1/fees/recommended`    | Recommended fee rates (sat/vB)       |
-| GET    | `/api/v1/mempool`             | Mempool snapshot (count, vsize, fees)|
-| GET    | `/api/v1/chain/tip`           | Best block height + hash             |
-
-Example:
-
-```sh
-curl -s localhost:8080/api/v1/fees/recommended
-# {"fastestFee":30,"halfHourFee":20,"hourFee":10,"economyFee":5,"minimumFee":1}
-```
-
-## Configuration
-
-| Env var                   | Default                  | Description                      |
-| ------------------------- | ------------------------ | -------------------------------- |
-| `ORANGE_HTTP_ADDR`        | `:8080`                  | API listen address              |
-| `ORANGE_MEMPOOL_BASE_URL` | `https://mempool.space`  | mempool.space API root          |
-| `ORANGE_REQUEST_TIMEOUT`  | `10s`                    | Upstream HTTP request timeout   |
 
 ## Develop
 
 ```sh
-make test       # run tests (no network required)
-make vet        # static checks
-make build      # build bin/orange-standard
+npm install
+npm run typecheck   # tsc --noEmit
+npm test            # unit + in-memory MCP integration tests (no network)
+npm run dev         # netlify dev — serves the function locally at /mcp
 ```
+
+### Try it locally
+
+With `netlify dev` running (default `http://localhost:8888`):
+
+```sh
+npx @modelcontextprotocol/inspector
+# then point it at http://localhost:8888/mcp  (Streamable HTTP)
+```
+
+## Deploy (Netlify)
+
+1. Connect this repo to a Netlify site (or `netlify deploy`).
+2. The function is published at `/.netlify/functions/mcp` and exposed at `/mcp`
+   via the redirect in `netlify.toml`.
+3. Point any MCP client at `https://<your-site>.netlify.app/mcp`.
+
+Runs comfortably within the Netlify Free Tier — it's stateless and only proxies
+small JSON reads.
+
+## Non-functional notes
+
+- Upstream requests time out at 8s and surface clear `MempoolApiError`s, which
+  become MCP tool errors (`isError: true`) rather than crashing the function.
+- No persistent state, no secrets required.
 
 ## Roadmap
 
-- [ ] WebSocket push for new blocks / mempool updates
-- [ ] `bitcoind` DataSource (RPC + ZMQ) to use your own node
-- [ ] Optional address/tx indexing via electrs/Fulcrum
-- [ ] Persistent history store
-```
+- [ ] `get_block_detail` by recent block range / pagination
+- [ ] Self-hosted `bitcoind` (RPC + ZMQ) data source behind the same tools
+- [ ] Optional caching layer to shield upstream under load

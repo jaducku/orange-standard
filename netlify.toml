@@ -1,0 +1,13 @@
+[build]
+  publish = "public"
+
+[functions]
+  # Bundle TypeScript functions and their imports with esbuild.
+  node_bundler = "esbuild"
+
+# Expose the MCP server at a clean /mcp path. MCP clients connect here.
+[[redirects]]
+  from = "/mcp"
+  to = "/.netlify/functions/mcp"
+  status = 200
+  force = true

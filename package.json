@@ -1,0 +1,29 @@
+{
+  "name": "orange-standard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless Bitcoin Mempool MCP server (mempool.space-backed) for AI agents, deployed on Netlify Functions",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "netlify dev",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "@netlify/functions": "^2.8.2",
+    "express": "^5.1.0",
+    "serverless-http": "^3.2.0",
+    "zod": "^3.24.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

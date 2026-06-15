@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>orange-standard · Bitcoin Mempool MCP</title>
+    <style>
+      body { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; max-width: 44rem; margin: 4rem auto; padding: 0 1.2rem; line-height: 1.6; color: #1a1a1a; }
+      code { background: #f4f4f4; padding: 0.1rem 0.35rem; border-radius: 4px; }
+      h1 { color: #f7931a; }
+      .tool { margin: 0.2rem 0; }
+    </style>
+  </head>
+  <body>
+    <h1>orange-standard</h1>
+    <p>A headless <strong>Bitcoin Mempool MCP server</strong> for AI agents. It exposes
+      real-time Bitcoin network state from <a href="https://mempool.space">mempool.space</a>
+      over the Model Context Protocol — no browser, no UI.</p>
+
+    <h2>Endpoint</h2>
+    <p>Connect an MCP client (Streamable HTTP) to:</p>
+    <p><code>POST /mcp</code></p>
+
+    <h2>Tools</h2>
+    <p class="tool">🧱 <code>get_latest_blocks</code> — most recent blocks (height, hash, miner, tx count)</p>
+    <p class="tool">🔎 <code>get_block_detail</code> — full metadata for a block by height or hash</p>
+    <p class="tool">📊 <code>get_mempool_status</code> — pending tx count, size, projected blocks</p>
+    <p class="tool">💸 <code>get_fee_estimates</code> — recommended fee rates (sat/vB)</p>
+
+    <p>See the <a href="https://github.com/jaducku/orange-standard">repository</a> for setup.</p>
+  </body>
+</html>
