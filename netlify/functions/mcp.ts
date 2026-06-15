@@ -21,6 +21,10 @@ app.post("/mcp", async (req: Request, res: Response) => {
     const transport = new StreamableHTTPServerTransport({
       // Stateless mode: no session id generation.
       sessionIdGenerator: undefined,
+      // Serverless functions can't stream a response — they buffer until the
+      // handler returns. Force a single JSON response per POST instead of an
+      // open SSE stream, which would otherwise hang the client (ETIMEDOUT).
+      enableJsonResponse: true,
     });
     res.on("close", () => {
       void transport.close();
