@@ -34,6 +34,19 @@ AI Agent ──> MCP Client ──> Netlify Function (/mcp) ──> mempool.spac
 | `get_mempool_status` | —                           | Pending tx count, vsize, total fee, projected blocks   |
 | `get_fee_estimates`  | —                           | Recommended fee rates (sat/vB)                         |
 
+## Interactive UI (MCP Apps)
+
+Each tool is also an **MCP App** ([SEP-1865](https://modelcontextprotocol.io/seps/1865-mcp-apps-interactive-user-interfaces-for-mcp)).
+It registers a `ui://bitcoin-mempool/*` HTML resource and links to it via
+`_meta.ui.resourceUri`; an MCP-Apps-capable host renders the result as cards and
+tables in a sandboxed iframe. Every result also carries plain-text JSON and
+`structuredContent`, so hosts **without** UI support degrade gracefully.
+
+- Resources: `ui://bitcoin-mempool/{fees,blocks,mempool,block-detail}`
+- No extra build step or dependency — the iframe is self-contained HTML + JS.
+- Try the UI in an MCP-Apps host such as [MCPJam](https://www.mcpjam.com/) or the
+  [mcp-ui](https://mcpui.dev) inspector.
+
 ## Layout
 
 ```

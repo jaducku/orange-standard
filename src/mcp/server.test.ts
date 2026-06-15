@@ -52,14 +52,43 @@ test("exposes all four PRD tools", async () => {
   ]);
 });
 
-test("get_fee_estimates returns upstream fee data", async () => {
+test("get_fee_estimates returns data, structuredContent, and a UI resource", async () => {
   const client = await connect();
   const result = (await client.callTool({ name: "get_fee_estimates", arguments: {} })) as CallToolResult;
   assert.notEqual(result.isError, true);
+
+  // Text fallback for non-UI hosts.
   const text = result.content[0]?.type === "text" ? result.content[0].text : "";
   const parsed = JSON.parse(text);
   assert.equal(parsed.fastestFee, 30);
   assert.equal(parsed.minimumFee, 1);
+
+  // Structured data for UI hosts.
+  assert.equal((result.structuredContent as { fastestFee?: number })?.fastestFee, 30);
+
+  // Inline MCP App UI resource.
+  const resource = result.content.find((c) => c.type === "resource");
+  assert.ok(resource && resource.type === "resource");
+  assert.equal(resource.resource.uri, "ui://bitcoin-mempool/fees");
+  const html = "text" in resource.resource ? resource.resource.text : "";
+  assert.match(html, /<!doctype html>/i);
+});
+
+test("exposes ui:// resources that render an iframe shell", async () => {
+  const client = await connect();
+  const { resources } = await client.listResources();
+  const uris = resources.map((r) => r.uri).sort();
+  assert.deepEqual(uris, [
+    "ui://bitcoin-mempool/block-detail",
+    "ui://bitcoin-mempool/blocks",
+    "ui://bitcoin-mempool/fees",
+    "ui://bitcoin-mempool/mempool",
+  ]);
+
+  const read = await client.readResource({ uri: "ui://bitcoin-mempool/fees" });
+  const first = read.contents[0];
+  const shell = first && "text" in first ? first.text : "";
+  assert.match(shell, /Recommended fees/);
 });
 
 test("get_block_detail without height or hash returns a tool error", async () => {
