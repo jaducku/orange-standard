@@ -13,6 +13,25 @@ import serverless from "serverless-http";
 import { setupMCPServer } from "../../src/mcp/server.js";
 
 const app = express();
+
+// Permissive CORS so browser-based MCP clients (e.g. the Inspector) and remote
+// connectors can reach the endpoint. Streamable HTTP needs Mcp-Session-Id
+// exposed even though this server is stateless.
+app.use((req: Request, res: Response, next) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin ?? "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Accept, Authorization, Mcp-Session-Id, MCP-Protocol-Version, Last-Event-ID",
+  );
+  res.header("Access-Control-Expose-Headers", "Mcp-Session-Id, MCP-Protocol-Version");
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
+
 app.use(express.json());
 
 app.post("/mcp", async (req: Request, res: Response) => {
